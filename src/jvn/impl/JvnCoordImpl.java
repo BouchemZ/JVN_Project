@@ -26,6 +26,7 @@ public class JvnCoordImpl
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+    private int nextObjectId = 1;
 
 /**
   * Default constructor
@@ -40,10 +41,10 @@ public class JvnCoordImpl
   *  newly created JVN object)
   * @throws java.rmi.RemoteException,JvnException
   **/
-  public int jvnGetObjectId()
+  public synchronized int jvnGetObjectId()
   throws java.rmi.RemoteException,jvn.JvnException {
-    // to be completed 
-    return 0;
+    // to be completed
+      return nextObjectId++;  // Increment and return unique ID
   }
   
   /**
