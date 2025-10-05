@@ -9,17 +9,17 @@
 
 package jvn.impl;
 
-import jvn.JvnException;
-import jvn.JvnLocalServer;
-import jvn.JvnObject;
-import jvn.JvnRemoteServer;
+import jvn.*;
 
+import java.rmi.Naming;
+import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
 
 
-
-public class JvnServerImpl 	
+public class JvnServerImpl
               extends UnicastRemoteObject 
 							implements JvnLocalServer, JvnRemoteServer {
 	
@@ -30,6 +30,12 @@ public class JvnServerImpl
 	// A JVN server is managed as a singleton  
 	private static JvnServerImpl js = null;
 
+    // reference to coord
+    private final JvnRemoteCoord coordinator;
+
+    // map id to object
+    private Map<Integer, JvnObjectImpl> jvnObjects; // dict of all objects and their id
+
   /**
   * Default constructor
   * @throws JvnException
@@ -37,6 +43,14 @@ public class JvnServerImpl
 	private JvnServerImpl() throws Exception {
 		super();
 		// to be completed
+        try
+        {
+            coordinator = (JvnRemoteCoord) Naming.lookup("//localhost/JvnCoord");
+        } catch (Exception e){
+            throw new JvnException("Cannot connect to coordinator: " + e.getMessage());
+        }
+
+        jvnObjects = new HashMap<>();
 	}
 	
   /**
@@ -60,8 +74,14 @@ public class JvnServerImpl
 	* @throws JvnException
 	**/
 	public  void jvnTerminate()
-	throws jvn.JvnException {
-    // to be completed 
+	throws JvnException {
+    // to be completed
+        try
+        {
+         coordinator.jvnTerminate(this);
+        }catch (Exception e){
+            throw new JvnException("Terminate failed: " + e.getMessage());
+        }
 	} 
 	
 	/**
@@ -70,9 +90,17 @@ public class JvnServerImpl
 	* @throws JvnException
 	**/
 	public JvnObject jvnCreateObject(Serializable o)
-	throws jvn.JvnException { 
-		// to be completed 
-		return null; 
+	throws JvnException {
+		// to be completed
+        try
+        {
+            int joi = coordinator.jvnGetObjectId();
+            JvnObjectImpl jo =  new JvnObjectImpl(joi,o,this);
+            jvnObjects.put(joi, jo);
+            return jo;
+        } catch (Exception e){
+            throw new JvnException("CreateObject failed: "+ e.getMessage());
+        }
 	}
 	
 	/**
@@ -82,8 +110,14 @@ public class JvnServerImpl
 	* @throws JvnException
 	**/
 	public  void jvnRegisterObject(String jon, JvnObject jo)
-	throws jvn.JvnException {
-		// to be completed 
+	throws JvnException {
+		// to be completed
+        try
+        {
+            coordinator.jvnRegisterObject(jon, jo, jo.jvnGetObjectId(),this);
+        } catch (Exception e){
+            throw new JvnException("RegisterObject failed: "+ e.getMessage());
+        }
 	}
 	
 	/**
@@ -93,9 +127,14 @@ public class JvnServerImpl
 	* @throws JvnException
 	**/
 	public  JvnObject jvnLookupObject(String jon)
-	throws jvn.JvnException {
-    // to be completed 
-		return null;
+	throws JvnException {
+    // to be completed
+        try
+        {
+            return coordinator.jvnLookupObject(jon,this);
+        }catch (Exception e) {
+            throw new JvnException("Lookup of jon: " + jon + "Failed." + e.getMessage());
+        }
 	}	
 	
 	/**
@@ -106,9 +145,13 @@ public class JvnServerImpl
 	**/
    public Serializable jvnLockRead(int joi)
 	 throws JvnException {
-		// to be completed 
-		return null;
-
+		// to be completed
+       try
+       {
+           return coordinator.jvnLockRead(joi,this);
+       }catch (Exception e){
+           throw new JvnException("Failed acquiring read lock :" + e.getMessage());
+       }
 	}	
 	/**
 	* Get a Write lock on a JVN object 
@@ -119,8 +162,13 @@ public class JvnServerImpl
    public Serializable jvnLockWrite(int joi)
 	 throws JvnException {
 		// to be completed 
-		return null;
-	}	
+       try
+       {
+           return coordinator.jvnLockWrite(joi,this);
+       }catch (Exception e){
+           throw new JvnException("Failed acquiring read lock :" + e.getMessage());
+       }
+    }
 
 	
   /**
@@ -131,8 +179,15 @@ public class JvnServerImpl
 	* @throws java.rmi.RemoteException,JvnException
 	**/
   public void jvnInvalidateReader(int joi)
-	throws java.rmi.RemoteException,jvn.JvnException {
-		// to be completed 
+	throws java.rmi.RemoteException,JvnException {
+		// to be completed
+      try
+      {
+          JvnObject jo = jvnObjects.get(joi);
+          jo.jvnInvalidateReader();
+      }catch (Exception e){
+          throw new JvnException("Failed InvalidateReader :" + e.getMessage());
+      }
 	};
 	    
 	/**
@@ -142,9 +197,15 @@ public class JvnServerImpl
 	* @throws java.rmi.RemoteException,JvnException
 	**/
   public Serializable jvnInvalidateWriter(int joi)
-	throws java.rmi.RemoteException,jvn.JvnException { 
+	throws java.rmi.RemoteException,JvnException {
 		// to be completed 
-		return null;
+      try
+      {
+          JvnObject jo = jvnObjects.get(joi);
+          return jo.jvnInvalidateWriter();
+      }catch (Exception e){
+          throw new JvnException("Failed InvalidateWriter :" + e.getMessage());
+      }
 	};
 	
 	/**
@@ -154,11 +215,16 @@ public class JvnServerImpl
 	* @throws java.rmi.RemoteException,JvnException
 	**/
    public Serializable jvnInvalidateWriterForReader(int joi)
-	 throws java.rmi.RemoteException,jvn.JvnException { 
+	 throws java.rmi.RemoteException,JvnException {
 		// to be completed 
-		return null;
+       try
+       {
+           JvnObject jo = jvnObjects.get(joi);
+           return jo.jvnInvalidateWriterForReader();
+       }catch (Exception e){
+           throw new JvnException("Failed InvalidateWriterForReader :" + e.getMessage());
+       }
 	 };
-
 }
 
  
