@@ -5,19 +5,10 @@ import jvn.*;
 import java.io.Serializable;
 
 public class JvnObjectImpl implements JvnObject {
-
+    private static final long serialVersionUID = 1L;
     private int jvnObjectId;
     private Serializable sharedObject;
     private JvnLocalServer localServer;
-
-    private enum LockState {
-        NL,      // No Lock
-        RC,      // Read Lock Cached (not used)
-        WC,      // Write Lock Cached (not used)
-        R ,      // Read Lock Taken
-        W,       // Write Lock Taken
-        RWC      // Read Lock Taken with Write Lock Cached
-    }
 
     private LockState currentLockState = LockState.NL;
 
@@ -53,7 +44,9 @@ public class JvnObjectImpl implements JvnObject {
                 break;
 
             case R:
+                // error maybe ?
             case W:
+                // error maybe
             case RWC:
                 // Already have the lock we need
                 break;
@@ -70,7 +63,6 @@ public class JvnObjectImpl implements JvnObject {
         switch (currentLockState) {
             case NL:
             case RC:
-            case R:
                 // No lock - need to acquire read lock from coordinator
                 sharedObject = localServer.jvnLockWrite(jvnObjectId);
                 currentLockState = LockState.W;
@@ -82,6 +74,7 @@ public class JvnObjectImpl implements JvnObject {
                 break;
 
             case W:
+            case R:
             case RWC:
                 // Already have the lock we need
                 break;
@@ -100,11 +93,8 @@ public class JvnObjectImpl implements JvnObject {
                 // release read lock - keep cached
                 currentLockState = LockState.RC;
             case W:
+                currentLockState = LockState.WC;
             case RWC:
-                // release write lock - keep cached
-                currentLockState = LockState.NL;
-                break;
-
             case WC:
             case NL:
             case RC:

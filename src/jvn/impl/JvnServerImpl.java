@@ -16,7 +16,6 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.*;
 import java.util.HashMap;
-import java.util.Map;
 
 
 public class JvnServerImpl
@@ -26,7 +25,6 @@ public class JvnServerImpl
   /**
 	 * 
 	 */
-	private static final long serialVersionUID = 1L;
 	// A JVN server is managed as a singleton  
 	private static JvnServerImpl js = null;
 
@@ -34,7 +32,7 @@ public class JvnServerImpl
     private final JvnRemoteCoord coordinator;
 
     // map id to object
-    private Map<Integer, JvnObjectImpl> jvnObjects; // dict of all objects and their id
+    private HashMap<Integer, JvnObjectImpl> jvnObjects; // dict of all objects and their id(key)
 
   /**
   * Default constructor
@@ -45,7 +43,7 @@ public class JvnServerImpl
 		// to be completed
         try
         {
-            coordinator = (JvnRemoteCoord) Naming.lookup("//localhost/JvnCoord");
+            coordinator = (JvnRemoteCoord) Naming.lookup("COORD");
         } catch (Exception e){
             throw new JvnException("Cannot connect to coordinator: " + e.getMessage());
         }
@@ -58,12 +56,12 @@ public class JvnServerImpl
     * a JVN server instance
     * @throws JvnException
     **/
-	public static JvnServerImpl jvnGetServer() {
+	public static JvnServerImpl jvnGetServer() throws JvnException{
 		if (js == null){
 			try {
 				js = new JvnServerImpl();
 			} catch (Exception e) {
-				return null;
+				throw new JvnException("Failed to initialize JVN Server: " + e.getMessage());
 			}
 		}
 		return js;
@@ -166,7 +164,7 @@ public class JvnServerImpl
        {
            return coordinator.jvnLockWrite(joi,this);
        }catch (Exception e){
-           throw new JvnException("Failed acquiring read lock :" + e.getMessage());
+           throw new JvnException("Failed acquiring write lock :" + e.getMessage());
        }
     }
 
