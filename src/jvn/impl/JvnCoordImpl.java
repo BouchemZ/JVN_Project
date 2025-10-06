@@ -8,14 +8,12 @@ package jvn.impl; /***
  */ 
 
 
-import jvn.JvnException;
-import jvn.JvnObject;
-import jvn.JvnRemoteCoord;
-import jvn.JvnRemoteServer;
-
+import jvn.*;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.Serializable;
-
+import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+import java.util.HashMap;
 
 public class JvnCoordImpl 	
               extends UnicastRemoteObject 
@@ -27,6 +25,9 @@ public class JvnCoordImpl
 	 */
 	private static final long serialVersionUID = 1L;
     private int nextObjectId = 1;
+    private int numberServers = 0;
+    private HashMap<JvnRemoteServer, JvnObject> serverObjects; // last saved object of all servers
+    //private HashMap
 
 /**
   * Default constructor
@@ -34,6 +35,8 @@ public class JvnCoordImpl
   **/
 	private JvnCoordImpl() throws Exception {
 		// to be completed
+        super();
+
 	}
 
   /**
@@ -57,7 +60,7 @@ public class JvnCoordImpl
   **/
   public void jvnRegisterObject(String jon, JvnObject jo, int joi, JvnRemoteServer js)
   throws java.rmi.RemoteException,jvn.JvnException{
-    // to be completed 
+    // to be completed
   }
   
   /**
@@ -77,7 +80,7 @@ public class JvnCoordImpl
   * @param joi : the JVN object identification
   * @param js  : the remote reference of the server
   * @return the current JVN object state
-  * @throws java.rmi.RemoteException, JvnException
+  * @throws java.rmi.RemoteException,JvnException
   **/
    public Serializable jvnLockRead(int joi, JvnRemoteServer js)
    throws java.rmi.RemoteException, JvnException{
@@ -90,7 +93,7 @@ public class JvnCoordImpl
   * @param joi : the JVN object identification
   * @param js  : the remote reference of the server
   * @return the current JVN object state
-  * @throws java.rmi.RemoteException, JvnException
+  * @throws java.rmi.RemoteException,JvnException
   **/
    public Serializable jvnLockWrite(int joi, JvnRemoteServer js)
    throws java.rmi.RemoteException, JvnException{
@@ -101,11 +104,24 @@ public class JvnCoordImpl
 	/**
 	* A JVN server terminates
 	* @param js  : the remote reference of the server
-	* @throws java.rmi.RemoteException, JvnException
+	* @throws java.rmi.RemoteException,JvnException
 	**/
     public void jvnTerminate(JvnRemoteServer js)
 	 throws java.rmi.RemoteException, JvnException {
 	 // to be completed
+    }
+    public static void main(String[] args) {
+        try {
+            LocateRegistry.createRegistry(1099);
+
+            JvnCoordImpl coord = new JvnCoordImpl();
+
+            Naming.rebind("COORD", coord);
+
+            System.out.println("Coordinateur lancé");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
 
