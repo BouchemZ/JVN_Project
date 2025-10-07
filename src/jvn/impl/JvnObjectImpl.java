@@ -3,19 +3,20 @@ package jvn.impl;
 import jvn.*;
 
 import java.io.Serializable;
+import java.util.Locale;
 
 public class JvnObjectImpl implements JvnObject {
     private static final long serialVersionUID = 1L;
     private int jvnObjectId;
     private Serializable sharedObject;
-    private JvnLocalServer localServer;
+    private transient JvnLocalServer localServer;
+    private LockState currentLockState;
 
-    private LockState currentLockState = LockState.NL;
-
-    public JvnObjectImpl(int id, Serializable obj, JvnLocalServer server) {
+    public JvnObjectImpl(int id, Serializable obj, JvnLocalServer server, LockState initialState) {
         this.jvnObjectId = id;
         this.sharedObject = obj;
         this.localServer = server;
+        this.currentLockState = initialState;
     }
 
 
@@ -44,11 +45,8 @@ public class JvnObjectImpl implements JvnObject {
                 break;
 
             case R:
-                // error maybe ?
             case W:
-                // error maybe
             case RWC:
-                // Already have the lock we need
                 break;
         }
     }
@@ -72,11 +70,9 @@ public class JvnObjectImpl implements JvnObject {
                 // Have cached write lock - transition to read with write cached
                 currentLockState = LockState.W;
                 break;
-
             case W:
             case R:
             case RWC:
-                // Already have the lock we need
                 break;
         }
     }
@@ -88,20 +84,22 @@ public class JvnObjectImpl implements JvnObject {
      **/
     @Override
     public void jvnUnLock() throws JvnException {
-        switch (currentLockState) {
-            case R:
-                // release read lock - keep cached
-                currentLockState = LockState.RC;
-            case W:
-                currentLockState = LockState.WC;
-            case RWC:
-            case WC:
-            case NL:
-            case RC:
-                // Already have the lock we need
-                break;
+        synchronized (this) {
+            switch (currentLockState) {
+                case R:
+                    currentLockState = LockState.RC;
+                    break;
+                case W:
+                case RWC:
+                    currentLockState = LockState.WC;
+                    break;
+                case WC:
+                case NL:
+                case RC:
+                    break;
+            }
+            notifyAll();
         }
-        notifyAll();
     }
 
     /**
@@ -131,15 +129,16 @@ public class JvnObjectImpl implements JvnObject {
      **/
     @Override
     public void jvnInvalidateReader() throws JvnException {
-        while(currentLockState == LockState.R || currentLockState == LockState.RWC)
-        {
-            try {
-                wait();
-            }catch (InterruptedException e) {
-                throw new JvnException("Interrupted while waiting to invalidate reader ");
+        synchronized (this) {
+            while(currentLockState == LockState.R || currentLockState == LockState.RWC) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    throw new JvnException("Interrupted while waiting to invalidate reader ");
+                }
             }
+            if(currentLockState == LockState.RC) currentLockState = LockState.NL;
         }
-        if(currentLockState == LockState.RC) currentLockState = LockState.NL;
     }
 
     /**
@@ -150,16 +149,17 @@ public class JvnObjectImpl implements JvnObject {
      **/
     @Override
     public Serializable jvnInvalidateWriter() throws JvnException {
-        while(currentLockState == LockState.W || currentLockState == LockState.RWC)
-        {
-            try {
-                wait();
-            }catch (InterruptedException e) {
-                throw new JvnException("Interrupted while waiting to invalidate writer");
+        synchronized (this) {
+            while(currentLockState == LockState.W || currentLockState == LockState.RWC) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    throw new JvnException("Interrupted while waiting to invalidate writer");
+                }
             }
+            if(currentLockState == LockState.WC) currentLockState = LockState.NL;
+            return sharedObject;
         }
-        if(currentLockState == LockState.WC) currentLockState = LockState.NL;
-        return sharedObject;
     }
 
     /**
@@ -170,15 +170,16 @@ public class JvnObjectImpl implements JvnObject {
      **/
     @Override
     public Serializable jvnInvalidateWriterForReader() throws JvnException {
-        while(currentLockState == LockState.W || currentLockState == LockState.RWC)
-        {
-            try {
-                wait();
-            }catch (InterruptedException e) {
-                throw new JvnException("Interrupted while waiting to invalidate writer");
+        synchronized (this) {
+            while(currentLockState == LockState.W || currentLockState == LockState.RWC) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    throw new JvnException("Interrupted while waiting to invalidate writer");
+                }
             }
+            if(currentLockState == LockState.WC) currentLockState = LockState.RC;
+            return sharedObject;
         }
-        if(currentLockState == LockState.WC) currentLockState = LockState.RC;
-        return sharedObject;
     }
 }

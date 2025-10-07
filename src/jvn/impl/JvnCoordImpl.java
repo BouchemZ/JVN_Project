@@ -13,7 +13,9 @@ import java.rmi.server.UnicastRemoteObject;
 import java.io.Serializable;
 import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class JvnCoordImpl 	
               extends UnicastRemoteObject 
@@ -25,9 +27,10 @@ public class JvnCoordImpl
 	 */
 	private static final long serialVersionUID = 1L;
     private int nextObjectId = 1;
-    private int numberServers = 0;
-    private HashMap<JvnRemoteServer, JvnObject> serverObjects; // last saved object of all servers
-    //private HashMap
+    private HashMap<String, JvnObject> nameObjects; // map name to object
+    private HashMap<Integer, Serializable> shareObjects; // map id to shared object
+    private HashMap<Integer, HashSet<JvnRemoteServer>> lockReaders; // map id to servers with read lock
+    private HashMap<Integer, JvnRemoteServer> lockWriters; // map id to server with write lock
 
 /**
   * Default constructor
@@ -36,7 +39,10 @@ public class JvnCoordImpl
 	private JvnCoordImpl() throws Exception {
 		// to be completed
         super();
-
+        this.nameObjects = new HashMap<>();
+        this.shareObjects = new HashMap<>();
+        this.lockReaders = new HashMap<>();
+        this.lockWriters = new HashMap<>();
 	}
 
   /**
@@ -60,7 +66,9 @@ public class JvnCoordImpl
   **/
   public void jvnRegisterObject(String jon, JvnObject jo, int joi, JvnRemoteServer js)
   throws java.rmi.RemoteException,jvn.JvnException{
-    // to be completed
+      this.nameObjects.put(jon, jo);
+      this.shareObjects.put(joi, jo.jvnGetSharedObject());
+      this.lockWriters.put(joi, js);
   }
   
   /**
@@ -71,8 +79,7 @@ public class JvnCoordImpl
   **/
   public JvnObject jvnLookupObject(String jon, JvnRemoteServer js)
   throws java.rmi.RemoteException,jvn.JvnException{
-    // to be completed 
-    return null;
+      return this.nameObjects.getOrDefault(jon, null);
   }
   
   /**
@@ -84,8 +91,19 @@ public class JvnCoordImpl
   **/
    public Serializable jvnLockRead(int joi, JvnRemoteServer js)
    throws java.rmi.RemoteException, JvnException{
-    // to be completed
-    return null;
+       if (!this.lockReaders.containsKey(joi))
+           this.lockReaders.put(joi, new HashSet<JvnRemoteServer>());
+
+       JvnRemoteServer writer = this.lockWriters.get(joi);
+       if(writer != null) {
+           this.shareObjects.put(joi, writer.jvnInvalidateWriterForReader(joi));
+           this.lockWriters.remove(joi);
+           this.lockReaders.get(joi).add(writer);
+       }
+
+       this.lockReaders.get(joi).add(js);
+
+       return this.shareObjects.get(joi);
    }
 
   /**
@@ -97,8 +115,22 @@ public class JvnCoordImpl
   **/
    public Serializable jvnLockWrite(int joi, JvnRemoteServer js)
    throws java.rmi.RemoteException, JvnException{
-    // to be completed
-    return null;
+
+       HashSet<JvnRemoteServer> readers = this.lockReaders.get(joi);
+       if (readers != null) {
+           for (JvnRemoteServer reader : readers) {
+               reader.jvnInvalidateReader(joi);
+           }
+           readers.clear();
+       }
+
+       if (this.lockWriters.get(joi) != null) {
+           this.shareObjects.put(joi, this.lockWriters.get(joi).jvnInvalidateWriter(joi));
+       }
+
+       this.lockWriters.put(joi, js);
+
+       return this.shareObjects.get(joi);
    }
 
 	/**
@@ -125,4 +157,4 @@ public class JvnCoordImpl
     }
 }
 
- 
+

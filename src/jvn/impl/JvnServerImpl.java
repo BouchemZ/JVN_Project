@@ -2,7 +2,7 @@
  * JAVANAISE Implementation
  * JvnServerImpl class
  * Implementation of a Jvn server
- * Contact: 
+ * Contact:
  *
  * Authors: 
  */
@@ -16,6 +16,8 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.*;
 import java.util.HashMap;
+import java.util.Objects;
+import java.util.concurrent.locks.Lock;
 
 
 public class JvnServerImpl
@@ -93,7 +95,7 @@ public class JvnServerImpl
         try
         {
             int joi = coordinator.jvnGetObjectId();
-            JvnObjectImpl jo =  new JvnObjectImpl(joi,o,this);
+            JvnObjectImpl jo =  new JvnObjectImpl(joi,o,this, LockState.W);
             jvnObjects.put(joi, jo);
             return jo;
         } catch (Exception e){
@@ -107,7 +109,7 @@ public class JvnServerImpl
 	* @param jo : the JVN object 
 	* @throws JvnException
 	**/
-	public  void jvnRegisterObject(String jon, JvnObject jo)
+	public void jvnRegisterObject(String jon, JvnObject jo)
 	throws JvnException {
 		// to be completed
         try
@@ -129,7 +131,11 @@ public class JvnServerImpl
     // to be completed
         try
         {
-            return coordinator.jvnLookupObject(jon,this);
+            JvnObject joWithoutServer = coordinator.jvnLookupObject(jon,this);
+            if(joWithoutServer == null) return null;
+            JvnObjectImpl jo = new JvnObjectImpl(joWithoutServer.jvnGetObjectId(), joWithoutServer.jvnGetSharedObject(), this, LockState.NL);
+            jvnObjects.put(jo.jvnGetObjectId(), jo);
+            return jo;
         }catch (Exception e) {
             throw new JvnException("Lookup of jon: " + jon + "Failed." + e.getMessage());
         }
@@ -225,4 +231,4 @@ public class JvnServerImpl
 	 };
 }
 
- 
+

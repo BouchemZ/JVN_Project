@@ -44,6 +44,9 @@ public class Irc {
 			jo.jvnUnLock();
 			js.jvnRegisterObject("IRC", jo);
 		}
+
+        System.out.println(js);
+        System.out.println(jo);
 		// create the graphical part of the Chat application
 		 new Irc(jo);
 	   
@@ -128,9 +131,8 @@ public class Irc {
 	public void actionPerformed (ActionEvent e) {
 	   try {	
 		// get the value to be written from the buffer
-    String s = irc.data.getText();
-        	
-    // lock the object in write mode
+        String s = irc.data.getText();
+        // lock the object in write mode
 		irc.sentence.jvnLockWrite();
 		
 		// invoke the method
@@ -139,7 +141,7 @@ public class Irc {
 		// unlock the object
 		irc.sentence.jvnUnLock();
 	 } catch (JvnException je) {
-		   System.out.println("IRC problem  : " + je.getMessage());
+        System.out.println("IRC problem  : " + je.getMessage());
 	 }
 	}
 }
