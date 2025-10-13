@@ -69,6 +69,7 @@ public class JvnCoordImpl
       this.nameObjects.put(jon, jo);
       this.shareObjects.put(joi, jo.jvnGetSharedObject());
       this.lockWriters.put(joi, js);
+      this.lockReaders.put(joi,new HashSet<JvnRemoteServer>());
   }
   
   /**
@@ -79,7 +80,7 @@ public class JvnCoordImpl
   **/
   public JvnObject jvnLookupObject(String jon, JvnRemoteServer js)
   throws java.rmi.RemoteException,jvn.JvnException{
-      return this.nameObjects.getOrDefault(jon, null);
+      return this.nameObjects.get(jon);
   }
   
   /**
@@ -91,8 +92,6 @@ public class JvnCoordImpl
   **/
    public Serializable jvnLockRead(int joi, JvnRemoteServer js)
    throws java.rmi.RemoteException, JvnException{
-       if (!this.lockReaders.containsKey(joi))
-           this.lockReaders.put(joi, new HashSet<JvnRemoteServer>());
 
        JvnRemoteServer writer = this.lockWriters.get(joi);
        if(writer != null) {
@@ -141,6 +140,14 @@ public class JvnCoordImpl
     public void jvnTerminate(JvnRemoteServer js)
 	 throws java.rmi.RemoteException, JvnException {
 	 // to be completed
+        for (Integer joi : this.lockWriters.keySet()){
+            if (this.lockWriters.get(joi) == js){
+                this.lockWriters.put(joi,null);
+            }
+        }
+        for (Integer joi : this.lockReaders.keySet()){
+            this.lockReaders.get(joi).remove(js);
+        }
     }
     public static void main(String[] args) {
         try {
