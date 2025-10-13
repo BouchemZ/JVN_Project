@@ -40,13 +40,11 @@ public class Irc {
 		   
 		if (jo == null) {
 			jo = js.jvnCreateObject((Serializable) new Sentence());
-			// after creation, I have a write lock on the object
-			jo.jvnUnLock();
 			js.jvnRegisterObject("IRC", jo);
+            // after creation, I have a write lock on the object
+            jo.jvnUnLock();
 		}
 
-        System.out.println(js);
-        System.out.println(jo);
 		// create the graphical part of the Chat application
 		 new Irc(jo);
 	   
@@ -78,6 +76,19 @@ public class Irc {
 		frame.setSize(545,201);
 		text.setBackground(Color.black); 
 		frame.setVisible(true);
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                super.windowClosing(e);
+                try {
+                    JvnServerImpl js = JvnServerImpl.jvnGetServer();
+                    js.jvnTerminate();
+                    System.exit(0);
+                } catch (JvnException je) {
+                    System.out.println("IRC problem : " + je.getMessage());
+                }
+            }
+        });
 	}
 }
 

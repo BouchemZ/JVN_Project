@@ -141,14 +141,17 @@ public class JvnCoordImpl
 	 throws java.rmi.RemoteException, JvnException {
 	 // to be completed
         for (Integer joi : this.lockWriters.keySet()){
-            if (this.lockWriters.get(joi) == js){
+
+            if (js != null && js.equals(this.lockWriters.get(joi))){
                 this.lockWriters.put(joi,null);
             }
         }
+
         for (Integer joi : this.lockReaders.keySet()){
             this.lockReaders.get(joi).remove(js);
         }
     }
+
     public static void main(String[] args) {
         try {
             LocateRegistry.createRegistry(1099);
