@@ -1,5 +1,11 @@
 # Notes sur les points à revoir ou à confirmer
 
+## Pour la présentation
+
+- Préparer une démonstration simple avec deux clients (un lecteur et un écrivain) pour montrer le fonctionnement du système.
+- Préparer des slides pour expliquer l'architecture et les interactions entre les composants
+- Préparer un exemple de deux locks en mêmes temps (un read et un write) pour montrer la gestion des conflits
+
 ## Ajout de transient sur le localServer
 
 Dans la classe JvnObjectImpl, l'attribut localServer est marqué comme transient. Cela signifie qu'il ne sera pas sérialisé lorsque l'objet JvnObjectImpl sera sérialisé. Il est important de vérifier que cela est intentionnel et que le comportement attendu est bien celui-ci. Si localServer doit être recréé ou réinitialisé après la désérialisation, il faut s'assurer que cela est bien géré dans le code.
