@@ -143,6 +143,7 @@ public class JvnCoordImpl
         for (Integer joi : this.lockWriters.keySet()){
 
             if (js != null && js.equals(this.lockWriters.get(joi))){
+                this.shareObjects.put(joi, js.jvnInvalidateWriter(joi));
                 this.lockWriters.put(joi,null);
             }
         }
