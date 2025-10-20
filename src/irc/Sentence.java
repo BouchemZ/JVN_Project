@@ -8,11 +8,14 @@
 
 package irc;
 
-public class Sentence implements java.io.Serializable {
+import java.io.Serial;
+
+public class Sentence implements ISentence {
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = 1L;
+	@Serial
+    private static final long serialVersionUID = 1L;
 	String 	data;
   
 	public Sentence() {
