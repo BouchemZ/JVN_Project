@@ -99,12 +99,9 @@ public class Irc {
   * Management of user events
   **/
 	public void actionPerformed (ActionEvent e) {
-		// lock the object in read mode
 
 		// invoke the method
 		String s = irc.sentence.read();
-		
-		// unlock the object
 
 		// display the read value
 		irc.data.setText(s);

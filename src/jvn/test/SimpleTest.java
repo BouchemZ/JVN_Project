@@ -17,12 +17,12 @@ public class SimpleTest {
         System.out.println("Les reads doivent attendre le write et lire le dernier message\n");
 
         try {
-            JvnServerImpl js = JvnServerImpl.jvnGetServer();
+            JvnServerImpl jsMain = JvnServerImpl.jvnGetServer();
 
             // Créer un objet JVN directement sans passer par le proxy
             Sentence sentenceObj = new Sentence();
-            JvnObject jvnObject = js.jvnCreateObject(sentenceObj);
-            js.jvnRegisterObject("IRC", jvnObject);
+            JvnObject mainObject = jsMain.jvnCreateObject(sentenceObj);
+            jsMain.jvnRegisterObject("IRC", mainObject);
 
             final boolean[] writeFinished = new boolean[1];
             final int[] successCount = new int[1];
@@ -30,13 +30,16 @@ public class SimpleTest {
             // 1 Writer qui ecrit (le verrou garde 2 secondes grace au delai dans jvnLockWrite)
             Thread writer = new Thread(() -> {
                 try {
+                    JvnServerImpl js = JvnServerImpl.jvnGetServer();
+                    JvnObject jvnObject = js.jvnLookupObject("IRC");
+
                     System.out.println("[WRITE] Debut lock write...");
                     jvnObject.jvnLockWrite(); // Le delai de 2 sec est ici
 
                     System.out.println("[WRITE] Lock acquis, ecriture du message...");
-                    Sentence s = (Sentence) jvnObject.jvnGetSharedObject();
-                    s.write("DERNIER_MESSAGE");
+                    ((Sentence) jvnObject.jvnGetSharedObject()).write("DERNIER_MESSAGE");
 
+                    Thread.sleep(2000);
                     System.out.println("[WRITE] Unlock...");
                     jvnObject.jvnUnLock();
 
@@ -53,13 +56,15 @@ public class SimpleTest {
                 final int id = i;
                 readers[i] = new Thread(() -> {
                     try {
+                        JvnServerImpl js = JvnServerImpl.jvnGetServer();
+                        JvnObject jvnObject = js.jvnLookupObject("IRC");
+
                         Thread.sleep(500); // Laisse le write demarrer
                         System.out.println("[READ-" + id + "] Tentative de lecture...");
                         long start = System.currentTimeMillis();
 
                         jvnObject.jvnLockRead();
-                        Sentence s = (Sentence) jvnObject.jvnGetSharedObject();
-                        String text = s.read();
+                        String text = ((Sentence) jvnObject.jvnGetSharedObject()).read();
                         jvnObject.jvnUnLock();
 
                         long duration = System.currentTimeMillis() - start;
@@ -92,7 +97,7 @@ public class SimpleTest {
                 System.err.println("Seulement " + successCount[0] + "/3 reads corrects");
             }
 
-            js.jvnTerminate();
+            jsMain.jvnTerminate();
 
         } catch (Exception e) {
             e.printStackTrace();
