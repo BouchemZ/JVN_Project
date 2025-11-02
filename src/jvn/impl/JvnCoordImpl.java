@@ -9,6 +9,8 @@ package jvn.impl; /***
 
 
 import jvn.*;
+
+import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.Serializable;
 import java.rmi.Naming;
@@ -95,9 +97,19 @@ public class JvnCoordImpl
 
        JvnRemoteServer writer = this.lockWriters.get(joi);
        if(writer != null) {
-           this.shareObjects.put(joi, writer.jvnInvalidateWriterForReader(joi));
+           Serializable newState = null;
+           try {
+               newState = writer.jvnInvalidateWriterForReader(joi);
+               this.lockReaders.get(joi).add(writer);
+           } catch (RemoteException e) {
+                System.err.println("Écrivain inaccessible, lock libéré: " + e.getMessage());
+           } catch (JvnException e) {
+                throw new JvnException("Erreur lors de l'invalidation de l'écrivain pour lecteur: " + e.getMessage());
+           }
            this.lockWriters.remove(joi);
-           this.lockReaders.get(joi).add(writer);
+           if (newState != null) {
+               this.shareObjects.put(joi, newState);
+           }
        }
 
        this.lockReaders.get(joi).add(js);
@@ -115,19 +127,36 @@ public class JvnCoordImpl
    public synchronized Serializable jvnLockWrite(int joi, JvnRemoteServer js)
    throws java.rmi.RemoteException, JvnException{
 
-       HashSet<JvnRemoteServer> readers = this.lockReaders.get(joi);
-       if (readers != null) {
-           for (JvnRemoteServer reader : readers) {
-               reader.jvnInvalidateReader(joi);
-           }
-           readers.clear();
-       }
+      HashSet<JvnRemoteServer> readers = this.lockReaders.get(joi);
+      if (readers != null) {
+          for (JvnRemoteServer reader : readers) {
+              try {
+                  reader.jvnInvalidateReader(joi);
+              } catch (RemoteException e) {
+                  System.err.println("Lecteur inaccessible, suppression: " + e.getMessage());
+              }
+          }
+          readers.clear();
+      }
 
-       if (this.lockWriters.get(joi) != null) {
-           this.shareObjects.put(joi, this.lockWriters.get(joi).jvnInvalidateWriter(joi));
-       }
+      JvnRemoteServer currentWriter = this.lockWriters.get(joi);
+      if (currentWriter != null) {
+          Serializable newState = null;
+          try {
+              newState = currentWriter.jvnInvalidateWriter(joi);
+          } catch (RemoteException e) {
+              System.err.println("Écrivain inaccessible, lock libéré: " + e.getMessage());
 
-       this.lockWriters.put(joi, js);
+              this.lockWriters.remove(joi);
+          } catch (JvnException e) {
+              throw new JvnException("Erreur lors de l'invalidation de l'écrivain: " + e.getMessage());
+          }
+          if(newState != null) {
+              this.shareObjects.put(joi, newState);
+          }
+      }
+
+      this.lockWriters.put(joi, js);
 
        return this.shareObjects.get(joi);
    }
