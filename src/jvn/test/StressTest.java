@@ -1,10 +1,14 @@
 package jvn.test;
 
+import irc.ISentence;
 import irc.Sentence;
 import jvn.JvnObject;
+import jvn.impl.JvnObjectProxy;
 import jvn.impl.JvnServerImpl;
 
 import java.util.Random;
+
+import static java.lang.System.exit;
 
 /**
  * Stress Test JVN : Test de cohérence avec opérations concurrentes aléatoires
@@ -49,67 +53,34 @@ public class StressTest {
             // Chaque processus obtient son propre serveur JVN (simule une machine différente)
             JvnServerImpl js = JvnServerImpl.jvnGetServer();
 
-            JvnObject jvnObject = js.jvnLookupObject("COUNTER");
-
-            if (jvnObject == null) {
-                System.out.println("Looked up is not enough");
-                Sentence sentenceObj = new Sentence();
-                sentenceObj.write("0");
-                jvnObject = js.jvnCreateObject(sentenceObj);
-                js.jvnRegisterObject("COUNTER", jvnObject);
-                // after creation, I have a write lock on the object
-                jvnObject.jvnUnLock();
-            }
+            ISentence sentence = (ISentence) JvnObjectProxy.newInstance("COUNTER", new Sentence(), js);
 
             System.out.println("✓ Connecté au coordinateur et objet COUNTER récupéré");
             System.out.println();
 
             // Effectuer 20 itérations avec opérations aléatoires
-            for (int i = 1; i <= 20; i++) {
+            for (int i = 1; i <= 4000; i++) {
                 // Délai aléatoire entre 0 et 500ms
-                int delay = random.nextInt(501);
-                Thread.sleep(delay);
+                 int delay = 5 ; //random.nextInt(501);
+                 Thread.sleep(delay);
 
                 // Choix aléatoire entre READ (0) et WRITE (1)
                 boolean isWrite = random.nextBoolean();
 
                 if (isWrite) {
                     // ============ OPÉRATION WRITE ============
-                    int currentVal, newVal;
-                    jvnObject.jvnLockWrite();
+                    String s = String.format("%dW%04d", processId, i);
+                    sentence.write(s);
 
-                    try {
-                        // Lecture de la valeur actuelle directement depuis l'objet partagé
-                        String currentStr = ((Sentence) jvnObject.jvnGetSharedObject()).read();
-                        currentVal = Integer.parseInt(currentStr);
-                        newVal = currentVal + 1;
-
-                        // Écriture directement sur l'objet partagé
-                        ((Sentence) jvnObject.jvnGetSharedObject()).write(String.valueOf(newVal));
-
-                        writeCount++;
-                    } finally {
-                        jvnObject.jvnUnLock();
-                    }
-
-                    System.out.println(String.format("[PID:%d][Iter %2d] WRITE : %d → %d (délai: %dms)",
-                        processId, i, currentVal, newVal, delay));
+                    System.out.printf("[PID:%d][Iter %04d] WRITE : %s%n",
+                        processId, i, s);
 
                 } else {
                     // ============ OPÉRATION READ ============
-                    jvnObject.jvnLockRead();
+                    String s = sentence.read();
 
-                    String value;
-                    try {
-                        // Lecture directement depuis l'objet partagé
-                        value = ((Sentence) jvnObject.jvnGetSharedObject()).read();
-                        readCount++;
-                    } finally {
-                        jvnObject.jvnUnLock();
-                    }
-
-                    System.out.println(String.format("[PID:%d][Iter %2d] READ  : %s (délai: %dms)",
-                        processId, i, value, delay));
+                    System.out.printf("[PID:%d][Iter %04d] READ  : %s%n",
+                        processId, i, s);
                 }
             }
 
@@ -126,9 +97,7 @@ public class StressTest {
             System.out.println();
 
             // Afficher la valeur finale
-            jvnObject.jvnLockRead();
-            String finalValue = ((Sentence) jvnObject.jvnGetSharedObject()).read();
-            jvnObject.jvnUnLock();
+            String finalValue = sentence.read();
 
             System.out.println("  Valeur finale : " + finalValue);
             System.out.println();
@@ -136,11 +105,13 @@ public class StressTest {
 
             // Nettoyage
             js.jvnTerminate();
+            exit(0);
 
         } catch (Exception e) {
             System.err.println();
             System.err.println("❌ ERREUR : " + e.getMessage());
             e.printStackTrace();
+            exit(1);
         }
     }
 }
