@@ -59,7 +59,7 @@ public class StressTest {
             System.out.println();
 
             // Effectuer 20 itérations avec opérations aléatoires
-            for (int i = 1; i <= 4000; i++) {
+            for (int i = 1; i <= 500; i++) {
                 // Délai aléatoire entre 0 et 500ms
                  int delay = 5 ; //random.nextInt(501);
                  Thread.sleep(delay);

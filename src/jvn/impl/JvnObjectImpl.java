@@ -36,11 +36,13 @@ public class JvnObjectImpl implements JvnObject {
 
             case RC:
                 // Have cached read lock - just transition to taken
+                sharedObject = localServer.jvnLockRead(jvnObjectId);
                 currentLockState = LockState.R;
                 break;
 
             case WC:
                 // Have cached write lock - transition to read with write cached
+                sharedObject = localServer.jvnLockRead(jvnObjectId);
                 currentLockState = LockState.RWC;
                 break;
 
@@ -68,6 +70,7 @@ public class JvnObjectImpl implements JvnObject {
 
             case WC:
                 // Have cached write lock - transition to read with write cached
+                sharedObject = localServer.jvnLockWrite(jvnObjectId);
                 currentLockState = LockState.W;
                 break;
             case W:
