@@ -64,7 +64,7 @@ public class JvnCoordImpl
   * @param js  : the remote reference of the JVNServer
   * @throws java.rmi.RemoteException,JvnException
   **/
-  public void jvnRegisterObject(String jon, JvnObject jo, int joi, JvnRemoteServer js)
+  public synchronized void jvnRegisterObject(String jon, JvnObject jo, int joi, JvnRemoteServer js)
   throws java.rmi.RemoteException,jvn.JvnException{
       this.nameObjects.put(jon, jo);
       this.shareObjects.put(joi, jo.jvnGetSharedObject());
@@ -78,7 +78,7 @@ public class JvnCoordImpl
   * @param js : the remote reference of the JVNServer
   * @throws java.rmi.RemoteException,JvnException
   **/
-  public JvnObject jvnLookupObject(String jon, JvnRemoteServer js)
+  public synchronized JvnObject jvnLookupObject(String jon, JvnRemoteServer js)
   throws java.rmi.RemoteException,jvn.JvnException{
       return this.nameObjects.get(jon);
   }
@@ -90,7 +90,7 @@ public class JvnCoordImpl
   * @return the current JVN object state
   * @throws java.rmi.RemoteException,JvnException
   **/
-   public Serializable jvnLockRead(int joi, JvnRemoteServer js)
+   public synchronized Serializable jvnLockRead(int joi, JvnRemoteServer js)
    throws java.rmi.RemoteException, JvnException{
 
        JvnRemoteServer writer = this.lockWriters.get(joi);
@@ -112,7 +112,7 @@ public class JvnCoordImpl
   * @return the current JVN object state
   * @throws java.rmi.RemoteException,JvnException
   **/
-   public Serializable jvnLockWrite(int joi, JvnRemoteServer js)
+   public synchronized Serializable jvnLockWrite(int joi, JvnRemoteServer js)
    throws java.rmi.RemoteException, JvnException{
 
        HashSet<JvnRemoteServer> readers = this.lockReaders.get(joi);
@@ -137,7 +137,7 @@ public class JvnCoordImpl
 	* @param js  : the remote reference of the server
 	* @throws java.rmi.RemoteException,JvnException
 	**/
-    public void jvnTerminate(JvnRemoteServer js)
+    public synchronized void jvnTerminate(JvnRemoteServer js)
 	 throws java.rmi.RemoteException, JvnException {
 	 // to be completed
         for (Integer joi : this.lockWriters.keySet()){
