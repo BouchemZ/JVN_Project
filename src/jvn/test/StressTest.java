@@ -92,8 +92,6 @@ public class StressTest {
             System.out.println();
             System.out.println("✓ Process " + processId + " terminé");
             System.out.println("  Durée totale  : " + duration + "ms");
-            System.out.println("  READs         : " + readCount);
-            System.out.println("  WRITEs        : " + writeCount);
             System.out.println();
 
             // Afficher la valeur finale

@@ -28,8 +28,14 @@ Pour lancer ce test, il y a un script bash que vous pouvez lancer depuis la raci
 bash bash/simpleTest.sh
 ```
 
-
 ### Stress Test
+
+Pour le stress test, nous lançons trois clients simultanément qui font chacun 500 itérations dans lesquels ils vont aléatoirement faire soit un read soit un write. Pour lancer ce test, il y a un script bash :
+```bash
+bash bash/stressTest.sh
+```
+
+En suivant les logs sortis par ce test, on peut voir qu'il y a une cohérence sur le read et write qui se suivent, qu'il n'y en pas qui sont écrasés.
 
 ## Extensions
 
