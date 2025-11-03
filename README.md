@@ -45,7 +45,7 @@ Pour la gestion des pannes clients, nous avons simplement ajouté une récupéra
 
 Nous n'avons pas gérer l'enregistrement des clients morts auprès du coordinateur par manque de temps, mais nous gérons simplement que le système ne soit pas cassé si un client tombe en panne. 
 
-Vous pouvez tester cette foncitonnalité avec le bouton kill que nous avons ajouté sur l'interface, ce bouton arrête le programme sans le terminer proprement.
+Vous pouvez tester cette fonctionnalité avec le bouton kill que nous avons ajouté sur l'interface, ce bouton arrête le programme sans le terminer proprement.
 
 ### Extension 2 : Gestion des pannes Coordinateurs
 
