@@ -128,18 +128,25 @@ public class JvnCoordImpl
        JvnRemoteServer writer = this.lockWriters.get(joi);
        if(writer != null) {
            Serializable newState = null;
-           try {
-               newState = writer.jvnInvalidateWriterForReader(joi);
-               this.lockReaders.get(joi).add(writer);
-           } catch (RemoteException e) {
-                System.err.println("Écrivain inaccessible :" + e.getMessage());
-           } catch (JvnException e) {
-                throw new JvnException("Erreur lors de l'invalidation de l'écrivain pour lecteur: " + e.getMessage());
+           int counter = 0;
+           while (newState == null && counter < 10) {
+               try {
+                   newState = writer.jvnInvalidateWriterForReader(joi);
+                   this.lockReaders.get(joi).add(writer);
+               } catch (RemoteException e) {
+                   System.err.println("Writer unreachable (try " + (counter+1) + "/10) :" + e.getMessage());
+               } catch (JvnException e) {
+                   throw new JvnException(e.getMessage());
+               }
+               counter++;
            }
-           this.lockWriters.remove(joi);
            if (newState != null) {
                this.shareObjects.put(joi, newState);
+           } else {
+               System.err.println("Writer definitely unreachable");
+               this.lockWriters.remove(joi);
            }
+           this.lockWriters.remove(joi);
        }
 
        this.lockReaders.get(joi).add(js);
@@ -159,11 +166,21 @@ public class JvnCoordImpl
 
       HashSet<JvnRemoteServer> readers = this.lockReaders.get(joi);
       if (readers != null) {
+          HashSet<JvnRemoteServer> deadReaders = new HashSet<>();
           for (JvnRemoteServer reader : readers) {
-              try {
-                  reader.jvnInvalidateReader(joi);
-              } catch (RemoteException e) {
-                  System.err.println("Lecteur inaccessible : " + e.getMessage());
+              int counter = 0;
+              boolean success = false;
+              while (!success && counter < 10) {
+                  try {
+                      reader.jvnInvalidateReader(joi);
+                      success = true;
+                  } catch (RemoteException e) {
+                      System.err.println("Reader unreachable (try " + (counter+1) + "/10) : " + e.getMessage());
+                      counter++;
+                  }
+              }
+              if (!success) {
+                  System.err.println("Reader definitely unreachable");
               }
           }
           readers.clear();
@@ -172,18 +189,23 @@ public class JvnCoordImpl
       JvnRemoteServer currentWriter = this.lockWriters.get(joi);
       if (currentWriter != null) {
           Serializable newState = null;
-          try {
-              newState = currentWriter.jvnInvalidateWriter(joi);
-          } catch (RemoteException e) {
-              System.err.println("Écrivain inaccessible : " + e.getMessage());
-
-              this.lockWriters.remove(joi);
-          } catch (JvnException e) {
-              throw new JvnException("Erreur lors de l'invalidation de l'écrivain: " + e.getMessage());
+          int counter = 0;
+          while (newState == null && counter < 10) {
+              try {
+                  newState = currentWriter.jvnInvalidateWriter(joi);
+              } catch (RemoteException e) {
+                  System.err.println("Writer unreachable (try " + (counter+1) + "/10) : " + e.getMessage());
+              } catch (JvnException e) {
+                  throw new JvnException(e.getMessage());
+              }
+              counter++;
           }
-          if(newState != null) {
+          if (newState != null) {
               this.shareObjects.put(joi, newState);
+          } else {
+                System.err.println("Writer definitely unreachable");
           }
+          this.lockWriters.remove(joi);
       }
 
       this.lockWriters.put(joi, js);

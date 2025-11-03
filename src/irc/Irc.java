@@ -65,6 +65,9 @@ public class Irc {
 		Button write_button = new Button("write");
 		write_button.addActionListener(new writeListener(this));
 		frame.add(write_button);
+        Button kill_button = new Button("kill");
+        kill_button.addActionListener(new killListener(this));
+        frame.add(kill_button);
 		frame.setSize(545,201);
 		text.setBackground(Color.black); 
 		frame.setVisible(true);
@@ -128,6 +131,25 @@ public class Irc {
 
         // invoke the method
         irc.sentence.write(s);
+    }
+}
+
+/**
+ * Internal class to manage user events (kill) on the CHAT application
+ **/
+class killListener implements ActionListener {
+    Irc irc;
+
+    public killListener (Irc i) {
+        irc = i;
+    }
+
+    /**
+     * Management of user events - Kill the process without cleanup
+     **/
+    public void actionPerformed (ActionEvent e) {
+        System.out.println("CRASH SIMULATION - Arrêt brutal du processus sans cleanup");
+        System.exit(1);  // Arrêt brutal sans appeler jvnTerminate
     }
 }
 

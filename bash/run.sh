@@ -24,11 +24,10 @@ fi
 
 echo "Compilation réussie!"
 echo ""
-cd bash
 
 # Lancement du coordinateur
 echo "Démarrage du coordinateur..."
-java -cp ../bin jvn.impl.JvnCoordImpl &
+java -cp ./bin jvn.impl.JvnCoordImpl &
 COORD_PID=$!
 
 # Attendre que le coordinateur soit prêt
@@ -45,17 +44,17 @@ echo "Coordinateur démarré (PID: $COORD_PID)"
 
 # Lancement des trois machines IRC
 echo "Démarrage de la machine IRC 1..."
-java -cp ../bin irc.Irc &
+java -cp ./bin irc.Irc &
 
 sleep 2
 
 echo "Démarrage de la machine IRC 2..."
-java -cp ../bin irc.Irc &
+java -cp ./bin irc.Irc &
 
 sleep 2
 
 echo "Démarrage de la machine IRC 3..."
-java -cp ../bin irc.Irc &
+java -cp ./bin irc.Irc &
 
 echo ""
 echo "=========================================="
