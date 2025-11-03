@@ -31,3 +31,11 @@ Pour la gestion des pannes clients, nous avons simplement ajouté une récupéra
 Nous n'avons pas gérer l'enregistrement des clients morts auprès du coordinateur par manque de temps, mais nous gérons simplement que le système ne soit pas cassé si un client tombe en panne. 
 
 Vous pouvez tester cette foncitonnalité avec le bouton kill que nous avons ajouté sur l'interface, ce bouton arrête le programme sans le terminer proprement.
+
+### Extension 2 : Gestion des pannes Coordinateurs
+
+Pour la gestion des pannes coordinateurs, lors de l'instanciation du coordinateur, celui-ci cherche l'existence du COORD.ser (un état serializé de celui-ci). Si il existe alors le coordinateur copie ce état, sinon il se lance avec un état "vierge".
+
+Apres l'instanciation et le possible load, se lance une thread qui a pour but d'écrire toutes les 10 secondes l'état du cordinateur pour de futur recovery.
+
+Cette gestion n'est pas cohérente. On trouvera dans le codes une ébauche de fonction qui cherche à sauvegarder/load chaque champs du coordinateur, la fonction de sauvegarde serait à appeler lors de chaque modification de données critique du coordinateur de manière à pouvoir plus tard faire une récupération cohérente.
