@@ -48,6 +48,51 @@ public class JvnCoordImpl
 	}
 
     /**
+     *  save a serializable
+     */
+    public void saveSerializable(Object o,String name){
+        try {
+            FileOutputStream fout = new FileOutputStream(String.format("data/%S.ser",name));
+            ObjectOutputStream out = new ObjectOutputStream(fout);
+            out.writeObject(o);
+            out.close();
+        } catch (IOException e) {
+            System.err.println("Failed to save state of the coordinator: " + e.getMessage());
+        }
+    }
+    /**
+     * load a serialized file
+     * not complete
+     */
+    public void loadSerializable(String name) throws IOException, ClassNotFoundException{
+        try {
+
+            FileInputStream fin = new FileInputStream(String.format("data/%S.ser",name));
+            ObjectInputStream in = new ObjectInputStream(fin);
+
+            //change the field of named name, too late
+            in.close();
+
+        } catch (IOException  e) {
+            System.err.println("Failed to load state of "+ name + " : " + e.getMessage());
+        }
+
+    }
+    /**
+     * load all serialized files
+     */
+    public void loadAll(){
+            String[] fields = {"nextObjectId","nameObjects", "shareObjects", "lockReaders", "lockWriters"};
+
+            for(String field :fields) {
+                try {
+                    loadSerializable(field);
+                } catch (Exception e) {
+                    System.err.println("Failed to load state of the coordinator: " + e.getMessage());
+                }
+            }
+    }
+    /**
      * to be run on its own thread
      * saves the coord as .ser file in the data directory
      */
