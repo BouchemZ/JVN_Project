@@ -2,6 +2,7 @@ package jvn.test;
 
 import irc.ISentence;
 import irc.Sentence;
+import jvn.JvnObject;
 import jvn.impl.JvnObjectProxy;
 import jvn.impl.JvnServerImpl;
 
@@ -13,20 +14,26 @@ import static java.lang.System.exit;
 public class SimpleWriter {
 
     public static void main(String[] args) {
-        System.out.println("=== TEST JVN (Direct sur JvnObjectImpl) ===\n");
-        System.out.println("Scenario: 1 write long + 3 reads simultanes");
-        System.out.println("Les reads doivent attendre le write et lire le dernier message\n");
 
         try {
             JvnServerImpl js = JvnServerImpl.jvnGetServer();
+            JvnObject jo = js.jvnLookupObject("SIMPLE");
 
-            // Créer un objet JVN directement sans passer par le proxy
-            ISentence sentence = (ISentence) JvnObjectProxy.newInstance("SIMPLE", new Sentence(), js);
+            if (jo == null) {
+                jo = js.jvnCreateObject(new Sentence());
+                js.jvnRegisterObject("SIMPLE", jo);
+                // after creation, I have a write lock on the object
+                jo.jvnUnLock();
+            }
 
             System.out.println("[WRITE] Debut lock write...");
+            jo.jvnLockWrite();
             System.out.println("[WRITE] Lock acquis, ecriture du message...");
-            sentence.write("PREMIER_MESSAGE");
+            ((Sentence) jo.jvnGetSharedObject()).write("INITIAL_MESSAGE");
+            System.out.println("[WRITE] Wait 10 secondes");
+            Thread.sleep(10000);
             System.out.println("[WRITE] Unlock...");
+            jo.jvnUnLock();
             System.out.println("[WRITE] Fin ecriture\n");
 
             js.jvnTerminate();

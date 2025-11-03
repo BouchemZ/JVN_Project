@@ -20,6 +20,15 @@ Pour terminer les clients proprement, vous pouvez appuyer sur la croix "x", cela
 
 ### Test de write et read avec Timeout
 
+Nous avons créé un test simple qui lance un write puis attend 10 secondes avant de unlock, et entre temps nous lançons un read pour vérifier qu'il attend la fin du write pour lire le message.
+
+Pour lancer ce test, il y a un script bash que vous pouvez lancer depuis la racine du projet :
+
+```bash
+bash bash/simpleTest.sh
+```
+
+
 ### Stress Test
 
 ## Extensions

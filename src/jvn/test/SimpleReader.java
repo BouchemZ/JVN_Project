@@ -13,9 +13,6 @@ import static java.lang.System.exit;
 public class SimpleReader {
 
     public static void main(String[] args) {
-        System.out.println("=== TEST JVN (Direct sur JvnObjectImpl) ===\n");
-        System.out.println("Scenario: 1 write long + 3 reads simultanes");
-        System.out.println("Les reads doivent attendre le write et lire le dernier message\n");
 
         try {
             JvnServerImpl js = JvnServerImpl.jvnGetServer();
