@@ -102,7 +102,7 @@ public class JvnCoordImpl
                newState = writer.jvnInvalidateWriterForReader(joi);
                this.lockReaders.get(joi).add(writer);
            } catch (RemoteException e) {
-                System.err.println("Écrivain inaccessible, lock libéré: " + e.getMessage());
+                System.err.println("Écrivain inaccessible :" + e.getMessage());
            } catch (JvnException e) {
                 throw new JvnException("Erreur lors de l'invalidation de l'écrivain pour lecteur: " + e.getMessage());
            }
@@ -133,7 +133,7 @@ public class JvnCoordImpl
               try {
                   reader.jvnInvalidateReader(joi);
               } catch (RemoteException e) {
-                  System.err.println("Lecteur inaccessible, suppression: " + e.getMessage());
+                  System.err.println("Lecteur inaccessible : " + e.getMessage());
               }
           }
           readers.clear();
@@ -145,7 +145,7 @@ public class JvnCoordImpl
           try {
               newState = currentWriter.jvnInvalidateWriter(joi);
           } catch (RemoteException e) {
-              System.err.println("Écrivain inaccessible, lock libéré: " + e.getMessage());
+              System.err.println("Écrivain inaccessible : " + e.getMessage());
 
               this.lockWriters.remove(joi);
           } catch (JvnException e) {
