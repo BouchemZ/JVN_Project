@@ -11,8 +11,11 @@ package jvn.impl;
 
 import jvn.*;
 
+import java.net.MalformedURLException;
 import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.server.RemoteServer;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.*;
 import java.util.HashMap;
@@ -31,7 +34,7 @@ public class JvnServerImpl
 	private static JvnServerImpl js = null;
 
     // reference to coord
-    private final JvnRemoteCoord coordinator;
+    private JvnRemoteCoord coordinator;
 
     // map id to object
     private HashMap<Integer, JvnObjectImpl> jvnObjects; // dict of all objects and their id(key)
@@ -40,12 +43,32 @@ public class JvnServerImpl
   * Default constructor
   * @throws JvnException
   **/
+  public static JvnRemoteCoord connectToCoord() {
+      JvnRemoteCoord coord = null;
+      while (coord == null && !Thread.currentThread().isInterrupted()) {
+          try {
+              System.out.println("Trying to connect to Coordinator...");
+              coord = (JvnRemoteCoord) Naming.lookup("COORD");
+              System.out.println("Connected to coordinator!");
+          } catch (RemoteException | NotBoundException | MalformedURLException e) {
+              System.out.println("Connection failed: " + e.getMessage());
+              try {
+                  Thread.sleep(2000); // retry delay
+              } catch (InterruptedException ie) {
+                  Thread.currentThread().interrupt();
+                  System.out.println("Interrupted while waiting; stopping connection attempts.");
+                  return null;
+              }
+          }
+      }
+      return coord;
+  }
 	private JvnServerImpl() throws Exception {
 		super();
 		// to be completed
         try
         {
-            coordinator = (JvnRemoteCoord) Naming.lookup("COORD");
+            coordinator = connectToCoord();
         } catch (Exception e){
             throw new JvnException("Cannot connect to coordinator: " + e.getMessage());
         }
@@ -76,9 +99,15 @@ public class JvnServerImpl
 	public  void jvnTerminate()
 	throws JvnException {
     // to be completed
-        try
-        {
-         coordinator.jvnTerminate(this);
+        try {
+            coordinator.jvnTerminate(this);
+        } catch (RemoteException ex) {
+            try {
+                coordinator = connectToCoord();
+                this.jvnTerminate();
+            }catch (Exception e){
+                throw new JvnException("Terminate failed: " + e.getMessage());
+            }
         }catch (Exception e){
             throw new JvnException("Terminate failed: " + e.getMessage());
         }
@@ -98,6 +127,13 @@ public class JvnServerImpl
             JvnObjectImpl jo =  new JvnObjectImpl(joi,o,this, LockState.W);
             jvnObjects.put(joi, jo);
             return jo;
+        } catch (RemoteException ex) {
+            try {
+                coordinator = connectToCoord();
+                return this.jvnCreateObject(o);
+            } catch (Exception e){
+                throw new JvnException("CreateObject failed: "+ e.getMessage());
+            }
         } catch (Exception e){
             throw new JvnException("CreateObject failed: "+ e.getMessage());
         }
@@ -115,6 +151,13 @@ public class JvnServerImpl
         try
         {
             coordinator.jvnRegisterObject(jon, jo, jo.jvnGetObjectId(),this);
+        } catch (RemoteException ex) {
+            try {
+                coordinator = connectToCoord();
+                this.jvnRegisterObject(jon,jo);
+            } catch (Exception e){
+                throw new JvnException("RegisterObject failed: "+ e.getMessage());
+            }
         } catch (Exception e){
             throw new JvnException("RegisterObject failed: "+ e.getMessage());
         }
@@ -129,13 +172,19 @@ public class JvnServerImpl
 	public  JvnObject jvnLookupObject(String jon)
 	throws JvnException {
     // to be completed
-        try
-        {
-            JvnObject joWithoutServer = coordinator.jvnLookupObject(jon,this);
-            if(joWithoutServer == null) return null;
+        try {
+            JvnObject joWithoutServer = coordinator.jvnLookupObject(jon, this);
+            if (joWithoutServer == null) return null;
             JvnObjectImpl jo = new JvnObjectImpl(joWithoutServer.jvnGetObjectId(), joWithoutServer.jvnGetSharedObject(), this, LockState.NL);
             jvnObjects.put(jo.jvnGetObjectId(), jo);
             return jo;
+        }catch(RemoteException ex){
+            try {
+                coordinator = connectToCoord();
+                return this.jvnLookupObject(jon);
+            } catch (Exception e) {
+                throw new JvnException("Lookup of jon: " + jon + "Failed." + e.getMessage());
+            }
         }catch (Exception e) {
             throw new JvnException("Lookup of jon: " + jon + "Failed." + e.getMessage());
         }
@@ -153,6 +202,13 @@ public class JvnServerImpl
        try
        {
            return coordinator.jvnLockRead(joi,this);
+       } catch (RemoteException ex) {
+           try {
+               coordinator = connectToCoord();
+               return this.jvnLockRead(joi);
+           }catch (Exception e){
+               throw new JvnException("Failed acquiring read lock :" + e.getMessage());
+           }
        }catch (Exception e){
            throw new JvnException("Failed acquiring read lock :" + e.getMessage());
        }
@@ -169,6 +225,13 @@ public class JvnServerImpl
        try
        {
            return coordinator.jvnLockWrite(joi,this);
+       } catch (RemoteException ex) {
+           try {
+               coordinator = connectToCoord();
+               return this.jvnLockWrite(joi);
+           }catch (Exception e){
+               throw new JvnException("Failed acquiring write lock :" + e.getMessage());
+           }
        }catch (Exception e){
            throw new JvnException("Failed acquiring write lock :" + e.getMessage());
        }

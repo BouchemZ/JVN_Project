@@ -10,9 +10,9 @@ package jvn.impl; /***
 
 import jvn.*;
 
+import java.io.*;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.io.Serializable;
 import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 import java.util.Arrays;
@@ -21,8 +21,8 @@ import java.util.HashSet;
 
 public class JvnCoordImpl 	
               extends UnicastRemoteObject 
-							implements JvnRemoteCoord {
-	
+							implements JvnRemoteCoord, Serializable {
+
 
   /**
 	 * 
@@ -47,6 +47,36 @@ public class JvnCoordImpl
         this.lockWriters = new HashMap<>();
 	}
 
+    /**
+     * to be run on its own thread
+     * saves the coord as .ser file in the data directory
+     */
+    public void saveCoord() throws IOException{
+        try {
+            FileOutputStream fout = new FileOutputStream("data/COORD.ser");
+            ObjectOutputStream out = new ObjectOutputStream(fout);
+            out.writeObject(this);
+            out.close();
+        } catch (IOException e) {
+            System.err.println("Failed to save state of the coordinator: " + e.getMessage());
+        }
+    }
+
+    /**
+     * try retrieving a .ser file if there is one
+     */
+    public static JvnCoordImpl loadCoord() throws IOException{
+        try {
+            FileInputStream fin = new FileInputStream("data/COORD.ser");
+            ObjectInputStream in = new ObjectInputStream(fin);
+            JvnCoordImpl coord = (JvnCoordImpl) in.readObject();
+            in.close();
+            return coord;
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Failed to load state of the coordinator: " + e.getMessage());
+            return null;
+        }
+    }
   /**
   *  Allocate a NEW JVN object id (usually allocated to a 
   *  newly created JVN object)
@@ -186,10 +216,29 @@ public class JvnCoordImpl
         try {
             LocateRegistry.createRegistry(1099);
 
-            JvnCoordImpl coord = new JvnCoordImpl();
+            JvnCoordImpl coord = JvnCoordImpl.loadCoord();
+
+            if(coord == null) coord = new JvnCoordImpl();
 
             Naming.rebind("COORD", coord);
 
+            JvnCoordImpl finalCoord = coord;
+
+            Thread saveThread = new Thread() {
+                public void run() {
+                    try {
+                        while (true) {
+
+                            finalCoord.saveCoord();
+
+                            Thread.sleep(1000);
+                        }
+                    } catch (IOException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+            saveThread.start();
             System.out.println("Coordinateur lancé");
         } catch (Exception e) {
             e.printStackTrace();
